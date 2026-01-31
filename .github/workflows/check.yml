@@ -27,6 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install tools via cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install linters
         run: cargo binstall -y selene stylua taplo-cli typos-cli
 
