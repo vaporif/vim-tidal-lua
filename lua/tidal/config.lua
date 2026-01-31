@@ -8,6 +8,7 @@ M.defaults = {
 	sclang = "sclang",
 	sc_boot = nil,
 	no_mappings = false,
+	diagnostics = true,
 }
 
 M.options = vim.deepcopy(M.defaults)
@@ -17,7 +18,7 @@ function M.setup(opts)
 end
 
 local function file_exists(path)
-	local stat = vim.loop.fs_stat(path)
+	local stat = vim.uv.fs_stat(path)
 	return stat and stat.type == "file"
 end
 

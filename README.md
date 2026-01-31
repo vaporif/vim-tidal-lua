@@ -1,6 +1,6 @@
 # vim-tidal-lua
 
-A pure Lua Neovim plugin for [TidalCycles](https://tidalcycles.org/) live coding.
+A pure Lua port of [vim-tidal](https://github.com/tidalcycles/vim-tidal) for Neovim. Provides [TidalCycles](https://tidalcycles.org/) live coding integration.
 
 ## Requirements
 
@@ -48,6 +48,7 @@ require("tidal").setup({
   sclang = "sclang",       -- sclang executable
   sc_boot = nil,           -- SuperCollider boot file
   no_mappings = false,     -- Disable default key mappings
+  diagnostics = true,      -- Show GHCi errors as Neovim diagnostics
 })
 ```
 
@@ -122,6 +123,36 @@ tidal.silence(n)         -- Silence stream n
 tidal.play(n)            -- Find and play stream n
 tidal.open_ghci()        -- Open GHCi terminal
 tidal.close_ghci()       -- Close GHCi terminal
+tidal.clear_diagnostics() -- Clear error diagnostics
+
+-- Statusline
+tidal.is_running()       -- Check if GHCi is running
+tidal.is_sc_running()    -- Check if SuperCollider is running
+tidal.get_status()       -- Get status table {running, sc_running, boot_file}
+tidal.statusline()       -- Get formatted string: "Tidal", "Tidal+SC", or ""
+```
+
+## Statusline Integration
+
+### lualine.nvim
+
+```lua
+require("lualine").setup({
+  sections = {
+    lualine_x = {
+      { function() return require("tidal").statusline() end },
+    },
+  },
+})
+```
+
+### heirline.nvim
+
+```lua
+{
+  condition = function() return require("tidal").is_running() end,
+  provider = function() return require("tidal").statusline() end,
+}
 ```
 
 ## License

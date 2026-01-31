@@ -16,7 +16,7 @@ end
 
 function M.play(n)
 	n = tonumber(n)
-	if not n or n < 1 or n <= 0 then
+	if not n or n < 1 or n > 16 then
 		vim.notify("Invalid stream number: " .. tostring(n), vim.log.levels.ERROR)
 		return
 	end
@@ -46,10 +46,10 @@ function M.generate_completions(path)
 	end
 
 	local samples = {}
-	local handle = vim.loop.fs_scandir(path)
+	local handle = vim.uv.fs_scandir(path)
 	if handle then
 		while true do
-			local name, type = vim.loop.fs_scandir_next(handle)
+			local name, type = vim.uv.fs_scandir_next(handle)
 			if not name then
 				break
 			end

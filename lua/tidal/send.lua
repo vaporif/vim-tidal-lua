@@ -1,6 +1,7 @@
 local M = {}
 local terminal = require("tidal.terminal")
 local flash = require("tidal.flash")
+local diagnostic = require("tidal.diagnostic")
 
 local function is_multiline(text)
 	return text:find("\n") ~= nil
@@ -44,6 +45,7 @@ function M.send_line(count)
 		end_line = start_line + count - 1
 	end
 
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
 	flash.flash_range(start_line, end_line)
 	M.send(line)
 end
@@ -72,6 +74,7 @@ function M.send_paragraph()
 	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
 	local text = table.concat(lines, "\n")
 
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end
@@ -98,6 +101,7 @@ function M.send_visual()
 
 	local text = table.concat(lines, "\n")
 
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end
@@ -106,6 +110,7 @@ function M.send_range(start_line, end_line)
 	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
 	local text = table.concat(lines, "\n")
 
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end
