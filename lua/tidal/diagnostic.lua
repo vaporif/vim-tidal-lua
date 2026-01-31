@@ -85,11 +85,17 @@ function M.set_diagnostics(errors)
 	local base_line = M.last_send.start_line or 1
 
 	for _, err in ipairs(errors) do
-		-- Map interactive line back to buffer line
-		-- For multiline (wrapped in :{ :}): line 2 = first source line
-		-- For single line: line 1 = the source line
-		local offset = M.last_send.multiline and 2 or 1
-		local buf_line = base_line + err.line - offset - 1 -- -1 for 0-index
+		local buf_line
+		if M.last_send.multiline then
+			-- For multiline (wrapped in :{ :}): line 2 = first source line
+			buf_line = base_line + err.line - 2
+		else
+			-- For single line: GHCi reports session line number, ignore it
+			-- Just put error on the line we sent
+			buf_line = base_line
+		end
+		-- Convert to 0-indexed
+		buf_line = buf_line - 1
 		if buf_line < 0 then
 			buf_line = 0
 		end
@@ -113,35 +119,24 @@ function M.clear(buf)
 	vim.diagnostic.reset(ns, buf)
 end
 
--- Track last processed output to avoid duplicates
-local last_output_hash = ""
-
 --- Process GHCi output and update diagnostics
 ---@param output string
 function M.process_output(output)
-	-- Avoid reprocessing same output
-	local hash = vim.fn.sha256(output)
-	if hash == last_output_hash then
+	if not M.last_send.buf or not vim.api.nvim_buf_is_valid(M.last_send.buf) then
 		return
 	end
-	last_output_hash = hash
 
-	-- Look for errors in output
+	-- Always clear previous diagnostics first
+	M.clear(M.last_send.buf)
+
+	-- Check for errors in new output
 	if not output:match("<interactive>:%d+:%d+:") then
-		-- No errors found, clear diagnostics
-		if M.last_send.buf and vim.api.nvim_buf_is_valid(M.last_send.buf) then
-			M.clear(M.last_send.buf)
-		end
 		return
 	end
 
 	local errors = M.parse_errors(output)
 	if #errors > 0 then
 		M.set_diagnostics(errors)
-	else
-		if M.last_send.buf and vim.api.nvim_buf_is_valid(M.last_send.buf) then
-			M.clear(M.last_send.buf)
-		end
 	end
 end
 

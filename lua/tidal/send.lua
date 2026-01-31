@@ -31,12 +31,18 @@ end
 
 function M.send(text)
 	local escaped = M.escape_text(text)
+
+	-- Mark position before sending for diagnostic check
+	if config.options.diagnostics then
+		terminal.mark_position()
+	end
+
 	terminal.send(escaped)
 
 	-- Check for errors after GHCi has time to respond
 	if config.options.diagnostics then
 		vim.defer_fn(function()
-			local output = terminal.get_recent_output(30)
+			local output = terminal.get_new_output()
 			diagnostic.process_output(output)
 		end, 300)
 	end

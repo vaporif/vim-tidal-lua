@@ -123,17 +123,29 @@ function M.close_sc()
 	M.sc_buf = nil
 end
 
---- Get recent lines from terminal buffer for error parsing
----@param num_lines? number Number of lines to fetch (default 50)
+-- Track buffer position before send to only check new output
+M.last_line_count = 0
+
+--- Mark current buffer position before sending
+function M.mark_position()
+	if buf_valid(M.ghci_buf) then
+		M.last_line_count = vim.api.nvim_buf_line_count(M.ghci_buf)
+	else
+		M.last_line_count = 0
+	end
+end
+
+--- Get output since last mark
 ---@return string
-function M.get_recent_output(num_lines)
-	num_lines = num_lines or 50
+function M.get_new_output()
 	if not buf_valid(M.ghci_buf) then
 		return ""
 	end
 	local line_count = vim.api.nvim_buf_line_count(M.ghci_buf)
-	local start_line = math.max(0, line_count - num_lines)
-	local lines = vim.api.nvim_buf_get_lines(M.ghci_buf, start_line, line_count, false)
+	if line_count <= M.last_line_count then
+		return ""
+	end
+	local lines = vim.api.nvim_buf_get_lines(M.ghci_buf, M.last_line_count, line_count, false)
 	return table.concat(lines, "\n")
 end
 
