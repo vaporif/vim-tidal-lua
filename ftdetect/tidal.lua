@@ -1,5 +1,5 @@
-vim.filetype.add({
-	extension = {
-		tidal = "tidal",
-	},
-})
+vim.filetype.add {
+  extension = {
+    tidal = 'tidal',
+  },
+}

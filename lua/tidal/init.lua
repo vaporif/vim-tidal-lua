@@ -1,13 +1,13 @@
 local M = {}
 
-local config = require("tidal.config")
-local send = require("tidal.send")
-local commands = require("tidal.commands")
-local terminal = require("tidal.terminal")
-local diagnostic = require("tidal.diagnostic")
+local config = require 'tidal.config'
+local send = require 'tidal.send'
+local commands = require 'tidal.commands'
+local terminal = require 'tidal.terminal'
+local diagnostic = require 'tidal.diagnostic'
 
 function M.setup(opts)
-	config.setup(opts)
+  config.setup(opts)
 end
 
 M.send = send.send
@@ -33,42 +33,42 @@ M.clear_diagnostics = diagnostic.clear
 --- Check if GHCi is running
 ---@return boolean
 function M.is_running()
-	return terminal.is_running(terminal.ghci_chan)
+  return terminal.is_running(terminal.ghci_chan)
 end
 
 --- Check if SuperCollider is running
 ---@return boolean
 function M.is_sc_running()
-	return terminal.is_running(terminal.sc_chan)
+  return terminal.is_running(terminal.sc_chan)
 end
 
 --- Get current boot file path
 ---@return string|nil
 function M.get_boot_file()
-	return config.find_boot_file()
+  return config.find_boot_file()
 end
 
 --- Get status table for statusline integration
 ---@return {running: boolean, sc_running: boolean, boot_file: string|nil}
 function M.get_status()
-	return {
-		running = M.is_running(),
-		sc_running = M.is_sc_running(),
-		boot_file = M.get_boot_file(),
-	}
+  return {
+    running = M.is_running(),
+    sc_running = M.is_sc_running(),
+    boot_file = M.get_boot_file(),
+  }
 end
 
 --- Get formatted statusline string
 ---@return string
 function M.statusline()
-	if not M.is_running() then
-		return ""
-	end
-	local status = "Tidal"
-	if M.is_sc_running() then
-		status = status .. "+SC"
-	end
-	return status
+  if not M.is_running() then
+    return ''
+  end
+  local status = 'Tidal'
+  if M.is_sc_running() then
+    status = status .. '+SC'
+  end
+  return status
 end
 
 return M

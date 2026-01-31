@@ -1,0 +1,2 @@
+[files]
+extend-exclude = ["*.lock", "lazy-lock.json", "secrets/*"]

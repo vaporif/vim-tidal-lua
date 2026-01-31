@@ -1,0 +1,56 @@
+
+name: "check"
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.serena/**'
+      - '.github/**'
+      - '.githooks/**'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.serena/**'
+      - '.github/**'
+      - '.githooks/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install linters
+        run: cargo binstall -y selene stylua taplo-cli typos-cli
+
+      - name: Lint Lua (selene)
+        working-directory: config/nvim
+        run: selene lua after init.lua
+
+      - name: Check Lua formatting (stylua)
+        run: stylua --check config/
+
+      - name: Lint TOML (taplo)
+        run: taplo check
+
+      - name: Check typos
+        run: typos
+
+      - name: Lint shell scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: scripts
+
+      - uses: raven-actions/actionlint@v2
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
