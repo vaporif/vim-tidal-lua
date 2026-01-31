@@ -15,7 +15,7 @@ A pure Lua Neovim plugin for [TidalCycles](https://tidalcycles.org/) live coding
 
 ```lua
 {
-  "tidalcycles/vim-tidal-lua",
+  "vaporif/vim-tidal-lua",
   ft = "tidal",
   opts = {},
 }
@@ -25,7 +25,7 @@ A pure Lua Neovim plugin for [TidalCycles](https://tidalcycles.org/) live coding
 
 ```lua
 use {
-  "tidalcycles/vim-tidal-lua",
+  "vaporif/vim-tidal-lua",
   ft = "tidal",
   config = function()
     require("tidal").setup()
