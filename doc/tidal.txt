@@ -1,0 +1,248 @@
+*tidal.txt*  TidalCycles integration for Neovim
+
+==============================================================================
+CONTENTS                                                      *tidal-contents*
+
+    1. Introduction .......................... |tidal-introduction|
+    2. Requirements .......................... |tidal-requirements|
+    3. Installation .......................... |tidal-installation|
+    4. Configuration ......................... |tidal-configuration|
+    5. Commands .............................. |tidal-commands|
+    6. Mappings .............................. |tidal-mappings|
+    7. Functions ............................. |tidal-functions|
+    8. Custom Boot Files ..................... |tidal-boot|
+    9. SuperCollider Integration ............. |tidal-supercollider|
+
+==============================================================================
+1. INTRODUCTION                                           *tidal-introduction*
+
+vim-tidal-lua is a pure Lua plugin for TidalCycles live coding in Neovim.
+It provides seamless integration between your editor and GHCi running Tidal.
+
+Features:
+- Send code from Neovim to GHCi terminal
+- Visual feedback (flash) when sending code
+- Multi-line code handling with GHCi block syntax
+- Custom boot file discovery
+- Optional SuperCollider integration
+
+==============================================================================
+2. REQUIREMENTS                                           *tidal-requirements*
+
+- Neovim 0.11+
+- GHCi with TidalCycles installed
+- SuperDirt (optional, for audio output)
+- SuperCollider (optional, for launching SuperDirt)
+
+==============================================================================
+3. INSTALLATION                                           *tidal-installation*
+
+Using lazy.nvim: >lua
+    {
+      "tidalcycles/vim-tidal-lua",
+      ft = "tidal",
+      opts = {},
+    }
+<
+
+Using packer.nvim: >lua
+    use {
+      "tidalcycles/vim-tidal-lua",
+      ft = "tidal",
+      config = function()
+        require("tidal").setup()
+      end
+    }
+<
+
+Manual installation:
+Clone to `~/.local/share/nvim/site/pack/plugins/start/vim-tidal-lua`
+
+==============================================================================
+4. CONFIGURATION                                         *tidal-configuration*
+
+Call `require("tidal").setup(opts)` with a table of options:
+
+>lua
+    require("tidal").setup({
+      ghci = "ghci",           -- GHCi executable
+      boot = nil,              -- Boot file path (auto-discovered if nil)
+      flash_duration = 150,    -- Flash duration in ms (0 to disable)
+      sc_enable = false,       -- Enable SuperCollider terminal
+      sclang = "sclang",       -- sclang executable
+      sc_boot = nil,           -- SuperCollider boot file
+      no_mappings = false,     -- Disable default key mappings
+    })
+<
+
+                                                               *g:tidal_ghci*
+ghci ~
+    Path to GHCi executable. Default: "ghci"
+
+                                                               *g:tidal_boot*
+boot ~
+    Path to boot file. If nil, searches for BootTidal.hs, Tidal.ghci,
+    or boot.tidal in parent directories.
+
+                                                      *g:tidal_flash_duration*
+flash_duration ~
+    Duration of visual flash feedback in milliseconds. Set to 0 to disable.
+    Default: 150
+
+                                                          *g:tidal_sc_enable*
+sc_enable ~
+    Enable SuperCollider terminal integration. Default: false
+
+                                                             *g:tidal_sclang*
+sclang ~
+    Path to sclang executable. Default: "sclang"
+
+                                                            *g:tidal_sc_boot*
+sc_boot ~
+    Path to SuperCollider boot file. Searches for boot.sc or boot.scd
+    if nil.
+
+                                                        *g:tidal_no_mappings*
+no_mappings ~
+    Set to true to disable default key mappings. Default: false
+
+==============================================================================
+5. COMMANDS                                                   *tidal-commands*
+
+                                                                  *:TidalSend*
+:TidalSend
+    Send current line to GHCi. With a range, sends those lines.
+
+                                                                 *:TidalSend1*
+:TidalSend1 {text}
+    Send literal text to GHCi.
+
+                                                                  *:TidalHush*
+:TidalHush
+    Silence all Tidal streams. Equivalent to sending `hush`.
+
+                                                               *:TidalSilence*
+:TidalSilence {n}
+    Silence stream n. Equivalent to `d{n} $ silence`.
+
+                                                                  *:TidalPlay*
+:TidalPlay {n}
+    Find the first occurrence of `d{n} $` in the buffer and send that
+    paragraph.
+
+                                                  *:TidalGenerateCompletions*
+:TidalGenerateCompletions [path]
+    Generate a list of Dirt sample names from the given path.
+    Default path: ~/.local/share/SuperCollider/downloaded-quarks/Dirt-Samples
+
+                                                                 *:TidalStart*
+:TidalStart
+    Manually start the GHCi terminal.
+
+                                                                  *:TidalStop*
+:TidalStop
+    Close the GHCi terminal.
+
+==============================================================================
+6. MAPPINGS                                                   *tidal-mappings*
+
+Default mappings in .tidal files (disable with `no_mappings = true`):
+
+Normal mode:
+    <C-e>             Send current paragraph
+    <localleader>s    Send current line
+    <localleader>ss   Send current paragraph
+    <C-h>             Hush (silence all)
+    <localleader>h    Hush (silence all)
+    <localleader>1-9  Silence stream d1-d9
+    <localleader>s1-9 Play stream d1-d9
+
+Insert mode:
+    <C-e>             Send current paragraph
+
+Visual mode:
+    <C-e>             Send selection
+    <localleader>s    Send selection
+
+==============================================================================
+7. FUNCTIONS                                                 *tidal-functions*
+
+Lua API available via `require("tidal")`:
+
+tidal.setup({opts})                                            *tidal.setup()*
+    Configure the plugin with given options.
+
+tidal.send({text})                                              *tidal.send()*
+    Send text to GHCi (with escaping).
+
+tidal.send_line([count])                                   *tidal.send_line()*
+    Send current line(s) to GHCi.
+
+tidal.send_paragraph()                                *tidal.send_paragraph()*
+    Send current paragraph to GHCi.
+
+tidal.send_visual()                                      *tidal.send_visual()*
+    Send visual selection to GHCi.
+
+tidal.send_range({start}, {end})                         *tidal.send_range()*
+    Send line range to GHCi.
+
+tidal.hush()                                                    *tidal.hush()*
+    Silence all streams.
+
+tidal.silence({n})                                           *tidal.silence()*
+    Silence stream n.
+
+tidal.play({n})                                                 *tidal.play()*
+    Find and play stream n.
+
+tidal.open_ghci()                                          *tidal.open_ghci()*
+    Open GHCi terminal.
+
+tidal.close_ghci()                                        *tidal.close_ghci()*
+    Close GHCi terminal.
+
+==============================================================================
+8. CUSTOM BOOT FILES                                             *tidal-boot*
+
+The plugin searches for boot files in parent directories:
+1. BootTidal.hs
+2. Tidal.ghci
+3. boot.tidal
+
+You can also set the path explicitly via `boot` option or the
+`TIDAL_BOOT_PATH` environment variable.
+
+Example custom boot file: >haskell
+    :set -XOverloadedStrings
+    :set prompt ""
+
+    import Sound.Tidal.Context
+
+    tidal <- startTidal (superdirtTarget {oLatency = 0.1}) defaultConfig
+
+    let p = streamReplace tidal
+        hush = streamHush tidal
+        d1 = p 1
+
+    :set prompt "tidal> "
+<
+
+==============================================================================
+9. SUPERCOLLIDER INTEGRATION                            *tidal-supercollider*
+
+Enable SuperCollider integration to launch sclang alongside GHCi:
+
+>lua
+    require("tidal").setup({
+      sc_enable = true,
+      sclang = "sclang",
+      sc_boot = nil,  -- searches for boot.sc or boot.scd
+    })
+<
+
+The plugin will open SuperCollider in a vertical split when you first send
+code to Tidal.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
