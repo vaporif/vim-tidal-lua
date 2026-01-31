@@ -2,6 +2,7 @@ local M = {}
 local terminal = require("tidal.terminal")
 local flash = require("tidal.flash")
 local diagnostic = require("tidal.diagnostic")
+local config = require("tidal.config")
 
 local function is_multiline(text)
 	return text:find("\n") ~= nil
@@ -31,6 +32,14 @@ end
 function M.send(text)
 	local escaped = M.escape_text(text)
 	terminal.send(escaped)
+
+	-- Check for errors after GHCi has time to respond
+	if config.options.diagnostics then
+		vim.defer_fn(function()
+			local output = terminal.get_recent_output(30)
+			diagnostic.process_output(output)
+		end, 300)
+	end
 end
 
 function M.send_line(count)
@@ -38,14 +47,16 @@ function M.send_line(count)
 	local line = vim.api.nvim_get_current_line()
 	local start_line = vim.fn.line(".")
 	local end_line = start_line
+	local multiline = false
 
 	if count > 1 then
 		local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, start_line - 1 + count, false)
 		line = table.concat(lines, "\n")
 		end_line = start_line + count - 1
+		multiline = true
 	end
 
-	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line, multiline)
 	flash.flash_range(start_line, end_line)
 	M.send(line)
 end
@@ -73,8 +84,9 @@ function M.send_paragraph()
 
 	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
 	local text = table.concat(lines, "\n")
+	local multiline = #lines > 1
 
-	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line, multiline)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end
@@ -100,8 +112,9 @@ function M.send_visual()
 	end
 
 	local text = table.concat(lines, "\n")
+	local multiline = #lines > 1
 
-	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line, multiline)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end
@@ -109,8 +122,9 @@ end
 function M.send_range(start_line, end_line)
 	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
 	local text = table.concat(lines, "\n")
+	local multiline = #lines > 1
 
-	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line)
+	diagnostic.record_send(vim.api.nvim_get_current_buf(), start_line, end_line, multiline)
 	flash.flash_range(start_line, end_line)
 	M.send(text)
 end

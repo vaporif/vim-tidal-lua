@@ -1,14 +1,10 @@
 local M = {}
 local config = require("tidal.config")
-local diagnostic = require("tidal.diagnostic")
 
 M.ghci_chan = nil
 M.ghci_buf = nil
 M.sc_chan = nil
 M.sc_buf = nil
-
--- Buffer to accumulate stdout for diagnostic parsing
-local stdout_buffer = ""
 
 local function buf_valid(buf)
 	return buf and vim.api.nvim_buf_is_valid(buf)
@@ -50,21 +46,9 @@ function M.open_ghci()
 	vim.api.nvim_set_current_buf(M.ghci_buf)
 
 	M.ghci_chan = vim.fn.termopen(cmd, {
-		on_stdout = function(_, data)
-			if config.options.diagnostics and data then
-				local text = table.concat(data, "\n")
-				stdout_buffer = stdout_buffer .. text
-				-- Process on prompt (ghci returns "ghci> " or "Prelude> " etc)
-				if stdout_buffer:match("[%w]+>%s*$") or stdout_buffer:match("<interactive>:%d+:%d+:") then
-					diagnostic.process_output(stdout_buffer)
-					stdout_buffer = ""
-				end
-			end
-		end,
 		on_exit = function()
 			M.ghci_chan = nil
 			M.ghci_buf = nil
-			stdout_buffer = ""
 		end,
 	})
 
@@ -137,6 +121,20 @@ function M.close_sc()
 	end
 	M.sc_chan = nil
 	M.sc_buf = nil
+end
+
+--- Get recent lines from terminal buffer for error parsing
+---@param num_lines? number Number of lines to fetch (default 50)
+---@return string
+function M.get_recent_output(num_lines)
+	num_lines = num_lines or 50
+	if not buf_valid(M.ghci_buf) then
+		return ""
+	end
+	local line_count = vim.api.nvim_buf_line_count(M.ghci_buf)
+	local start_line = math.max(0, line_count - num_lines)
+	local lines = vim.api.nvim_buf_get_lines(M.ghci_buf, start_line, line_count, false)
+	return table.concat(lines, "\n")
 end
 
 return M

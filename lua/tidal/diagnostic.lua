@@ -7,6 +7,7 @@ M.last_send = {
 	buf = nil,
 	start_line = nil,
 	end_line = nil,
+	multiline = false,
 }
 
 --- Parse GHCi error output
@@ -15,49 +16,54 @@ M.last_send = {
 function M.parse_errors(output)
 	local errors = {}
 
-	-- Pattern: <interactive>:LINE:COL: error: or <interactive>:LINE:COL: warning:
-	-- GHCi errors can span multiple lines, collect until next error or end
+	-- Pattern: <interactive>:LINE:COL: error: [GHC-XXXX] or warning:
 	local lines = vim.split(output, "\n")
 	local i = 1
 
 	while i <= #lines do
 		local line = lines[i]
-		local err_line, err_col, err_type = line:match("<interactive>:(%d+):(%d+):%s*(%w+)")
+		-- Match: <interactive>:41:6: error: [GHC-88464]
+		local err_line, err_col = line:match("<interactive>:(%d+):(%d+):")
 
 		if err_line then
 			local severity = vim.diagnostic.severity.ERROR
-			if err_type == "warning" then
+			if line:match("warning") then
 				severity = vim.diagnostic.severity.WARN
 			end
 
-			-- Collect message lines until next error marker or blank line sequence
+			-- Collect message lines until next error marker or prompt
 			local msg_lines = {}
 			i = i + 1
 			while i <= #lines do
 				local next_line = lines[i]
-				-- Stop at next error or empty output marker
+				-- Stop at next error, prompt, or empty lines
 				if next_line:match("^<interactive>:%d+:%d+:") then
 					break
 				end
-				-- Skip the initial error type line if present
-				if not next_line:match("^%s*$") or #msg_lines > 0 then
-					-- Trim leading whitespace for cleaner display
-					local trimmed = next_line:gsub("^%s*[•]?%s*", "")
-					if trimmed ~= "" then
-						table.insert(msg_lines, trimmed)
-					end
+				if next_line:match("^[%w]+>%s*$") or next_line:match("^tidal>") then
+					break
 				end
-				-- Stop after collecting reasonable message
-				if #msg_lines >= 5 then
+				-- Clean up the line
+				local trimmed = next_line:gsub("^%s+", "")
+				if trimmed ~= "" and not trimmed:match("^|") then
+					table.insert(msg_lines, trimmed)
+				end
+				-- Stop after collecting enough context
+				if #msg_lines >= 3 then
 					break
 				end
 				i = i + 1
 			end
 
+			local message = table.concat(msg_lines, " ")
+			if message == "" then
+				message = "GHCi error"
+			end
+
 			table.insert(errors, {
 				line = tonumber(err_line),
 				col = tonumber(err_col),
-				message = table.concat(msg_lines, " "),
+				message = message,
 				severity = severity,
 			})
 		else
@@ -80,7 +86,10 @@ function M.set_diagnostics(errors)
 
 	for _, err in ipairs(errors) do
 		-- Map interactive line back to buffer line
-		local buf_line = base_line + err.line - 2 -- -1 for 0-index, -1 for :{ wrapper
+		-- For multiline (wrapped in :{ :}): line 2 = first source line
+		-- For single line: line 1 = the source line
+		local offset = M.last_send.multiline and 2 or 1
+		local buf_line = base_line + err.line - offset - 1 -- -1 for 0-index
 		if buf_line < 0 then
 			buf_line = 0
 		end
@@ -104,11 +113,22 @@ function M.clear(buf)
 	vim.diagnostic.reset(ns, buf)
 end
 
+-- Track last processed output to avoid duplicates
+local last_output_hash = ""
+
 --- Process GHCi output and update diagnostics
 ---@param output string
 function M.process_output(output)
-	-- Clear previous diagnostics on successful evaluation
-	if output:match("^[%s\n]*$") or not output:match("<interactive>:%d+:%d+:") then
+	-- Avoid reprocessing same output
+	local hash = vim.fn.sha256(output)
+	if hash == last_output_hash then
+		return
+	end
+	last_output_hash = hash
+
+	-- Look for errors in output
+	if not output:match("<interactive>:%d+:%d+:") then
+		-- No errors found, clear diagnostics
 		if M.last_send.buf and vim.api.nvim_buf_is_valid(M.last_send.buf) then
 			M.clear(M.last_send.buf)
 		end
@@ -118,6 +138,10 @@ function M.process_output(output)
 	local errors = M.parse_errors(output)
 	if #errors > 0 then
 		M.set_diagnostics(errors)
+	else
+		if M.last_send.buf and vim.api.nvim_buf_is_valid(M.last_send.buf) then
+			M.clear(M.last_send.buf)
+		end
 	end
 end
 
@@ -125,10 +149,12 @@ end
 ---@param buf number
 ---@param start_line number
 ---@param end_line number
-function M.record_send(buf, start_line, end_line)
+---@param multiline boolean
+function M.record_send(buf, start_line, end_line, multiline)
 	M.last_send.buf = buf
 	M.last_send.start_line = start_line
 	M.last_send.end_line = end_line
+	M.last_send.multiline = multiline or false
 end
 
 return M
