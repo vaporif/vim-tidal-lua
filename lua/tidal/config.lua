@@ -8,7 +8,13 @@ M.defaults = {
   sclang = 'sclang',
   sc_boot = nil,
   no_mappings = false,
-  diagnostics = true,
+  diagnostics = {
+    enabled = true,
+    virtual_text = true,
+    signs = true,
+    underline = true,
+    severity_sort = true,
+  },
 }
 
 M.options = vim.deepcopy(M.defaults)

@@ -8,6 +8,14 @@ local diagnostic = require 'tidal.diagnostic'
 
 function M.setup(opts)
   config.setup(opts)
+
+  -- Configure diagnostics display
+  diagnostic.configure()
+
+  -- Set up output callback for real-time error detection
+  terminal.set_output_callback(function(output)
+    diagnostic.process_output(output)
+  end)
 end
 
 M.send = send.send
@@ -27,6 +35,7 @@ M.close_ghci = terminal.close_ghci
 M.close_sc = terminal.close_sc
 
 M.clear_diagnostics = diagnostic.clear
+M.clear_diagnostic_history = diagnostic.clear_history
 
 --- Statusline integration
 

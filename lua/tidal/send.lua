@@ -2,7 +2,6 @@ local M = {}
 local terminal = require 'tidal.terminal'
 local flash = require 'tidal.flash'
 local diagnostic = require 'tidal.diagnostic'
-local config = require 'tidal.config'
 
 local function is_multiline(text)
   return text:find '\n' ~= nil
@@ -31,21 +30,7 @@ end
 
 function M.send(text)
   local escaped = M.escape_text(text)
-
-  -- Mark position before sending for diagnostic check
-  if config.options.diagnostics then
-    terminal.mark_position()
-  end
-
   terminal.send(escaped)
-
-  -- Check for errors after GHCi has time to respond
-  if config.options.diagnostics then
-    vim.defer_fn(function()
-      local output = terminal.get_new_output()
-      diagnostic.process_output(output)
-    end, 300)
-  end
 end
 
 function M.send_line(count)

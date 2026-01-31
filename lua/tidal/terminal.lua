@@ -6,6 +6,13 @@ M.ghci_buf = nil
 M.sc_chan = nil
 M.sc_buf = nil
 
+-- Output buffer for accumulating GHCi responses
+M.output_buffer = {}
+M.pending_check = false
+
+-- Callback for processing output
+M.on_output = nil
+
 local function buf_valid(buf)
   return buf and vim.api.nvim_buf_is_valid(buf)
 end
@@ -20,6 +27,57 @@ end
 
 function M.is_running(chan)
   return chan_valid(chan)
+end
+
+--- Check if output indicates GHCi is ready (prompt returned)
+---@param line string
+---@return boolean
+local function is_prompt(line)
+  -- Match common GHCi prompts: tidal>, Prelude>, *Module>, ghci>
+  return line:match '^tidal>' ~= nil or line:match '^Prelude[%w%.]*>' ~= nil or line:match '^%*?[%w%.]+>' ~= nil or line:match '^ghci>' ~= nil
+end
+
+--- Process accumulated output when prompt is detected
+local function flush_output()
+  if #M.output_buffer == 0 then
+    return
+  end
+
+  local output = table.concat(M.output_buffer, '\n')
+  M.output_buffer = {}
+
+  if M.on_output then
+    vim.schedule(function()
+      M.on_output(output)
+    end)
+  end
+end
+
+--- Handle stdout from GHCi
+---@param _ any job id (unused)
+---@param data string[]
+local function on_stdout(_, data)
+  if not data then
+    return
+  end
+
+  for _, line in ipairs(data) do
+    if line ~= '' then
+      table.insert(M.output_buffer, line)
+    end
+
+    -- Check if this line is a prompt (GHCi is ready)
+    if is_prompt(line) then
+      -- Small delay to ensure all output is captured
+      if not M.pending_check then
+        M.pending_check = true
+        vim.defer_fn(function()
+          M.pending_check = false
+          flush_output()
+        end, 50)
+      end
+    end
+  end
 end
 
 function M.open_ghci()
@@ -45,10 +103,17 @@ function M.open_ghci()
   M.ghci_buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_set_current_buf(M.ghci_buf)
 
+  -- Reset output state
+  M.output_buffer = {}
+  M.pending_check = false
+
   M.ghci_chan = vim.fn.termopen(cmd, {
+    on_stdout = on_stdout,
+    on_stderr = on_stdout, -- Errors also come through stderr
     on_exit = function()
       M.ghci_chan = nil
       M.ghci_buf = nil
+      M.output_buffer = {}
     end,
   })
 
@@ -113,6 +178,7 @@ function M.close_ghci()
   end
   M.ghci_chan = nil
   M.ghci_buf = nil
+  M.output_buffer = {}
 end
 
 function M.close_sc()
@@ -123,30 +189,10 @@ function M.close_sc()
   M.sc_buf = nil
 end
 
--- Track buffer position before send to only check new output
-M.last_line_count = 0
-
---- Mark current buffer position before sending
-function M.mark_position()
-  if buf_valid(M.ghci_buf) then
-    M.last_line_count = vim.api.nvim_buf_line_count(M.ghci_buf)
-  else
-    M.last_line_count = 0
-  end
-end
-
---- Get output since last mark
----@return string
-function M.get_new_output()
-  if not buf_valid(M.ghci_buf) then
-    return ''
-  end
-  local line_count = vim.api.nvim_buf_line_count(M.ghci_buf)
-  if line_count <= M.last_line_count then
-    return ''
-  end
-  local lines = vim.api.nvim_buf_get_lines(M.ghci_buf, M.last_line_count, line_count, false)
-  return table.concat(lines, '\n')
+--- Set callback for GHCi output processing
+---@param callback fun(output: string)
+function M.set_output_callback(callback)
+  M.on_output = callback
 end
 
 return M
