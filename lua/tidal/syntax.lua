@@ -1,19 +1,17 @@
 local M = {}
 
 function M.setup()
-	local buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_set_hl(0, 'TidalKeyword', { link = 'Keyword' })
+  vim.api.nvim_set_hl(0, 'TidalType', { link = 'Type' })
+  vim.api.nvim_set_hl(0, 'TidalOperator', { link = 'Operator' })
+  vim.api.nvim_set_hl(0, 'TidalString', { link = 'String' })
+  vim.api.nvim_set_hl(0, 'TidalComment', { link = 'Comment' })
+  vim.api.nvim_set_hl(0, 'TidalNumber', { link = 'Number' })
+  vim.api.nvim_set_hl(0, 'TidalFunction', { link = 'Function' })
+  vim.api.nvim_set_hl(0, 'TidalStream', { link = 'Special' })
+  vim.api.nvim_set_hl(0, 'TidalMiniNotation', { link = 'String' })
 
-	vim.api.nvim_set_hl(0, "TidalKeyword", { link = "Keyword" })
-	vim.api.nvim_set_hl(0, "TidalType", { link = "Type" })
-	vim.api.nvim_set_hl(0, "TidalOperator", { link = "Operator" })
-	vim.api.nvim_set_hl(0, "TidalString", { link = "String" })
-	vim.api.nvim_set_hl(0, "TidalComment", { link = "Comment" })
-	vim.api.nvim_set_hl(0, "TidalNumber", { link = "Number" })
-	vim.api.nvim_set_hl(0, "TidalFunction", { link = "Function" })
-	vim.api.nvim_set_hl(0, "TidalStream", { link = "Special" })
-	vim.api.nvim_set_hl(0, "TidalMiniNotation", { link = "String" })
-
-	vim.cmd([[
+  vim.cmd [[
     syntax clear
 
     " Comments
@@ -42,8 +40,8 @@ function M.setup()
     syntax match TidalOperator "|>"
     syntax match TidalOperator "|<"
     syntax match TidalOperator ">|"
-    syntax match TidalOperator "<~"
-    syntax match TidalOperator "~>"
+    syntax match TidalOperator "<\~"
+    syntax match TidalOperator "\~>"
 
     " Tidal streams
     syntax match TidalStream "\<d[1-9]\>"
@@ -76,7 +74,7 @@ function M.setup()
     syntax keyword TidalFunction whenmod when
     syntax keyword TidalFunction superimpose layer off
     syntax keyword TidalFunction chunk hurry stretch compress zoom
-  ]])
+  ]]
 end
 
 return M
