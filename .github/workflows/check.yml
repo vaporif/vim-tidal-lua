@@ -34,7 +34,7 @@ jobs:
         run: cargo binstall -y selene stylua taplo-cli typos-cli
 
       - name: Lint Lua (selene)
-        working-directory: config/nvim
+        working-directory: lua/tidal
         run: selene lua after init.lua
 
       - name: Check Lua formatting (stylua)
