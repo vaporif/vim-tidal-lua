@@ -6,7 +6,6 @@ on:
       - '**.md'
       - '.gitignore'
       - '.serena/**'
-      - '.github/**'
       - '.githooks/**'
   push:
     branches: [main]
@@ -14,7 +13,6 @@ on:
       - '**.md'
       - '.gitignore'
       - '.serena/**'
-      - '.github/**'
       - '.githooks/**'
 
 concurrency:
